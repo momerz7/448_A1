@@ -58,6 +58,35 @@ public class AsyncProcessor {
                                     );                
                                                     
     }
+
+    public CompletableFuture<List<String>> processAsyncFailPartial(
+        List<Microservice> services,
+        List<String> messages
+    ){
+        List<CompletableFuture<String>> future_services =new ArrayList<>();
+
+        for(int i=o; i < services.size(); i++){
+
+            Microservice micro_service = services.get(i);
+            String message = messages.get(i);
+
+            //Failures are handled for each service
+            CompletableFuture<String> future_failure = micro_service.retrieveAsync(message).handle((result,exception) -> {
+                if(exception != null) {
+                    return null;
+                }
+                return result;
+            });
+            future_services.add(future_failure);
+        }
+
+        return CompletableFuture.allOf(future_services.toArray(new CompletableFuture[0]))
+                                    .thenApply(v -> future_services.stream()
+                                                    .map(CompletableFuture::join)
+                                                    .filter(result - >result!=null) //Only keep successful result
+                                                    .collect(Collectors.toList())
+                                    ); 
+    }
     
 
     
