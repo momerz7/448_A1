@@ -36,5 +36,29 @@ public class AsyncProcessor {
             .thenApply(v -> completionOrder);
         
     }
+
+    public CompletableFuture<String> processAsyncFailFast(
+        List<Microservice> services,
+        List<String> messages) {
+
+            List<CompletableFuture<String>> future_services = new ArrayList<>();
+
+            for (int i = 0; i < services.size(); i++) {
+                
+                Microservice micro_service = services.get(i);
+                String message = messages.get(i);
+                future_services.add(micro_service.retrieveAsync(message));
+
+            }
+
+            return CompletableFuture.allOf(future_services.toArray(new CompletableFuture[0]))
+                                    .thenApply(v -> future_services.stream()
+                                                    .map(CompletableFuture::join)
+                                                    .collect(Collectors.joining(" "))
+                                    );                
+                                                    
+    }
+    
+
     
 }
