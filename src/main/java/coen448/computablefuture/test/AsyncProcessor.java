@@ -45,18 +45,19 @@ public class AsyncProcessor {
 
             for (int i = 0; i < services.size(); i++) {
                 
-                Microservice micro_service = services.get(i);
-                String message = messages.get(i);
-                future_services.add(micro_service.retrieveAsync(message));
+                future_services.add(services.get(i).retrieveAsync(messages.get(i)));
 
             }
 
-            return CompletableFuture.allOf(future_services.toArray(new CompletableFuture[0]))
-                                    .thenApply(v -> future_services.stream()
-                                                    .map(CompletableFuture::join)
-                                                    .collect(Collectors.joining(" "))
+            CompletableFuture<Void> all_failures = CompletableFuture.allOf(
+                future_services.toArray(new CompletableFuture[0])
+            );
+
+            return all_failures.thenApply(v -> future_services.stream()
+                                                .map(CompletableFuture::join)
+                                                .collect(Collectors.joining(" "))
                                     );                
-                                                    
+                                                 
     }
 
     public CompletableFuture<List<String>> processAsyncFailPartial(
@@ -65,7 +66,7 @@ public class AsyncProcessor {
     ){
         List<CompletableFuture<String>> future_services =new ArrayList<>();
 
-        for(int i=o; i < services.size(); i++){
+        for(int i=0; i < services.size(); i++){
 
             Microservice micro_service = services.get(i);
             String message = messages.get(i);
@@ -83,10 +84,43 @@ public class AsyncProcessor {
         return CompletableFuture.allOf(future_services.toArray(new CompletableFuture[0]))
                                     .thenApply(v -> future_services.stream()
                                                     .map(CompletableFuture::join)
-                                                    .filter(result - >result!=null) //Only keep successful result
+                                                    .filter(result ->result!=null) //Only keep successful result
                                                     .collect(Collectors.toList())
                                     ); 
     }
+
+    public CompletableFuture<String> processAsyncFailSoft(
+
+        List<Microservice> services,
+        List<String> messages,
+        String fallbackValue){
+
+            List<CompletableFuture<String>> future_services =new ArrayList<>();
+
+            for(int i=0; i < services.size(); i++){
+
+                Microservice micro_service = services.get(i);
+                String message = messages.get(i);
+
+                CompletableFuture<String> future_failure = micro_service.retrieveAsync(message).handle((result,exception) -> {
+                    if(exception != null) {
+                        return fallbackValue; //return fallback value instead of failure
+                    }
+                    return result;
+                });
+                future_services.add(future_failure);
+
+            }
+
+            return CompletableFuture.allOf(future_services.toArray(new CompletableFuture[0]))
+                                    .thenApply(v -> future_services.stream()
+                                                    .map(CompletableFuture::join)
+                                                    .collect(Collectors.joining(" "))
+                                    );
+
+        }
+
+    
     
 
     
