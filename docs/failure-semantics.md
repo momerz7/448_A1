@@ -2,8 +2,6 @@
 
 To design, implement, and test 3 failure-handling policies explicit for concurrent microservice execution. Running microservices in parallel makes failures nondeterministic, giving the need of handling them deliberatly. The focus is to have clear and predictable failure semantics for fan-in/fan-out concurrency pattern.
 
---
-
 # System
 
 ## Microservice
